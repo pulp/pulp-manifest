@@ -3,7 +3,6 @@ import fnmatch
 import os
 import sys
 import boto3
-import tempfile
 from urllib.parse import urlparse
 from hashlib import sha256
 
@@ -80,14 +79,13 @@ def traverse_s3(s3_path, filter=None):
                 key = obj["Key"]
                 if filter and fnmatch.fnmatch(key, f"*{filter}*"):
                     continue
+                if key == "PULP_MANIFEST":
+                    continue
                 line = []
                 line.append(key.removeprefix(prefix).lstrip('/')) # Remove the prefix from the key
-                # Download the file, compute sha256, then remove it
-                with tempfile.NamedTemporaryFile() as tmp_file:
-                    print(f"Downloading {key} from S3 bucket {bucket_name} to temporary file {tmp_file.name}")
-                    s3_client.download_fileobj(bucket_name, key, tmp_file)
-                    tmp_file_path = tmp_file.name
-                    digest = get_digest(tmp_file_path)
+                response = s3_client.get_object(Bucket=bucket_name, Key=key)
+                file_content = response["Body"].read()
+                digest = sha256(file_content).hexdigest()
                 line.append(digest)
                 line.append(str(obj["Size"]))
                 manifest.append(",".join(str(item) for item in line))
