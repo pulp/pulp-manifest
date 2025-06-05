@@ -3,6 +3,7 @@ import fnmatch
 import os
 import sys
 import boto3
+import tempfile
 from urllib.parse import urlparse
 from hashlib import sha256
 
@@ -69,7 +70,6 @@ def traverse_s3(s3_path, filter=None):
     parsed_url = urlparse(s3_path)
     bucket_name = parsed_url.netloc
     prefix = parsed_url.path.lstrip("/")
-    print(prefix)
 
     s3_client = boto3.client("s3")
     paginator = s3_client.get_paginator("list_objects_v2")
@@ -82,7 +82,13 @@ def traverse_s3(s3_path, filter=None):
                     continue
                 line = []
                 line.append(key.removeprefix(prefix).lstrip('/')) # Remove the prefix from the key
-                line.append(obj["ETag"].strip('"'))  # ETag is often the MD5 hash
+                # Download the file, compute sha256, then remove it
+                with tempfile.NamedTemporaryFile() as tmp_file:
+                    print(f"Downloading {key} from S3 bucket {bucket_name} to temporary file {tmp_file.name}")
+                    s3_client.download_fileobj(bucket_name, key, tmp_file)
+                    tmp_file_path = tmp_file.name
+                    digest = get_digest(tmp_file_path)
+                line.append(digest)
                 line.append(str(obj["Size"]))
                 manifest.append(",".join(str(item) for item in line))
 
