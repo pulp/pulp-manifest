@@ -1,7 +1,5 @@
 from setuptools import setup, find_packages
 
-with open("requirements.txt", encoding="utf-8") as f:
-    requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
 setup(
     name="pulp_manifest",
@@ -12,7 +10,9 @@ setup(
     author_email="pulp-list@redhat.com",
     description="Tool to generate a PULP_MANIFEST file for a given directory,"
     " so the directory can be recognized by Pulp.",
-    install_requires=requirements,
+    extras_require=[
+        {"s3": ["boto3==3.19.1"]},
+    ],
     entry_points={
         "console_scripts": [
             "pulp-manifest = pulp_manifest.build_manifest:main",

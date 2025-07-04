@@ -2,7 +2,6 @@ import argparse
 import fnmatch
 import os
 import sys
-import boto3
 from urllib.parse import urlparse
 from hashlib import sha256
 
@@ -32,19 +31,19 @@ def get_digest(path):
     return digest.hexdigest()
 
 
-def traverse_dir(directory, filter=None):
+def traverse_dir(directory, exclude=None):
     """
     Traverse a given directory path and generate the PULP_MANIFEST
     associated with it.
 
     :param directory: str
-    :param filter: str, optional glob pattern to exclude files or directories
+    :param exclude: str, optional glob pattern to exclude files or directories
     :return: list of pulp manifest items
     """
     manifest = []
     for root, dirs, files in os.walk(directory, followlinks=True):
         for file in files:
-            if filter and fnmatch.fnmatch(file, f"*{filter}*"):
+            if exclude and fnmatch.fnmatch(file, f"*{exclude}*"):
                 continue
             file_path = os.path.join(root, file)
             line = []
@@ -56,15 +55,20 @@ def traverse_dir(directory, filter=None):
     return manifest
 
 
-def traverse_s3(s3_path, filter=None):
+def traverse_s3(s3_path, exclude=None):
     """
     Traverse a given S3 bucket path and generate the PULP_MANIFEST
     associated with it.
 
     :param s3_path: str
-    :param filter: str, optional glob pattern to exclude files or directories
+    :param exclude: str, optional glob pattern to exclude files or directories
     :return: list of pulp manifest items
     """
+    try:
+        import boto3
+    except ImportError:
+        print("Error: The 'boto3' package is required for S3 support. Please install it with 'pip install pulp-manifest[s3]'.")
+        sys.exit(1)
     manifest = []
     parsed_url = urlparse(s3_path)
     bucket_name = parsed_url.netloc
@@ -77,7 +81,7 @@ def traverse_s3(s3_path, filter=None):
         if "Contents" in page:
             for obj in page["Contents"]:
                 key = obj["Key"]
-                if filter and fnmatch.fnmatch(key, f"*{filter}*"):
+                if exclude and fnmatch.fnmatch(key, f"*{exclude}*"):
                     continue
                 if key == "PULP_MANIFEST":
                     continue
@@ -106,13 +110,13 @@ def main():
         " file should be created.",
     )
     parser.add_argument(
-        "-f", "--filter",
+        "-e", "--exclude",
         metavar="PATTERN",
         help="Exclude files or directories matching the given glob pattern from the PULP_MANIFEST."
     )
     args = parser.parse_args()
     directory = args.directory
-    filter = args.filter
+    exclude = args.exclude
 
     # Remove PULP_MANIFEST if it already exists in the given directory
     try:
@@ -122,11 +126,11 @@ def main():
 
     try:
         if directory.startswith("s3://"):
-            print(f"Generating PULP_MANIFEST for S3 bucket: {directory} with filter: {filter}")
-            manifest = traverse_s3(directory, filter)
+            print(f"Generating PULP_MANIFEST for S3 bucket: {directory} with exclude: {exclude}")
+            manifest = traverse_s3(directory, exclude)
         else:
             print(f"Generating PULP_MANIFEST for directory: {directory}")
-            manifest = traverse_dir(directory)
+            manifest = traverse_dir(directory, exclude)
         write_manifest("PULP_MANIFEST", manifest)
     except (IOError, OSError) as e:
         print(
