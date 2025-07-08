@@ -10,9 +10,9 @@ setup(
     author_email="pulp-list@redhat.com",
     description="Tool to generate a PULP_MANIFEST file for a given directory,"
     " so the directory can be recognized by Pulp.",
-    extras_require=[
-        {"s3": ["boto3==3.19.1"]},
-    ],
+    extras_require={
+        "s3": ["boto3==1.39.1"],
+    },
     entry_points={
         "console_scripts": [
             "pulp-manifest = pulp_manifest.build_manifest:main",
