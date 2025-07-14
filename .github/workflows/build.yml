@@ -1,0 +1,30 @@
+---
+name: "Build"
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Set up Python"
+        uses: "actions/setup-python@v5"
+        with:
+          python-version: "3.12"
+      - name: "Install python dependencies"
+        run: |
+          pip install -r ci_requirements.txt
+      - name: "Build wheels"
+        run: |
+          make build
+      - name: "Upload wheels"
+        uses: "actions/upload-artifact@v4"
+        with:
+          name: "pulp_manifest_packages"
+          path: |
+            dist/
+          if-no-files-found: "error"
+          retention-days: 5
+...
