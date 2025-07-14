@@ -5,7 +5,7 @@ setup(
     name="pulp_manifest",
     version="3.1.0",
     license="GPLv2+",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests"]),
     author="Pulp Team",
     author_email="pulp-list@redhat.com",
     description="Tool to generate a PULP_MANIFEST file for a given directory,"

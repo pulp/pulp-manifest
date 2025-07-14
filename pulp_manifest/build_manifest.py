@@ -97,13 +97,12 @@ def traverse_s3(s3_path, exclude=None):
     return manifest
 
 
-def main():
-    """
-    Main
-    """
-    parser = argparse.ArgumentParser(
-        description="Generate a PULP_MANIFEST file for a given directory or S3 bucket path."
-    )
+PROG_DESCRIPTION="""\
+Generate a PULP_MANIFEST file for a given directory or S3 bucket path.
+"""
+
+def create_parser():
+    parser = argparse.ArgumentParser(prog="pulp-manifest", description=PROG_DESCRIPTION)
     parser.add_argument(
         "directory",
         help="A path to the directory where the PULP_MANIFEST"
@@ -114,31 +113,41 @@ def main():
         metavar="PATTERN",
         help="Exclude files or directories matching the given glob pattern from the PULP_MANIFEST."
     )
-    args = parser.parse_args()
-    directory = args.directory
-    exclude = args.exclude
+    return parser
 
+
+def build_manifest(directory, exclude):
     # Remove PULP_MANIFEST if it already exists in the given directory
-    try:
-        os.remove(os.path.join(directory, "PULP_MANIFEST"))
-    except (IOError, OSError):
-        pass
+        try:
+            os.remove(os.path.join(directory, "PULP_MANIFEST"))
+        except (IOError, OSError):
+            pass
 
-    try:
-        if directory.startswith("s3://"):
-            print(f"Generating PULP_MANIFEST for S3 bucket: {directory} with exclude: {exclude}")
-            manifest = traverse_s3(directory, exclude)
-        else:
-            print(f"Generating PULP_MANIFEST for directory: {directory}")
-            manifest = traverse_dir(directory, exclude)
-        write_manifest("PULP_MANIFEST", manifest)
-    except (IOError, OSError) as e:
-        print(
-            "Couldn't open or write PULP_MANIFEST to directory %s (%s)."
-            % (directory, e)
-        )
-        sys.exit(1)
+        try:
+            if directory.startswith("s3://"):
+                print(f"Generating PULP_MANIFEST for S3 bucket: {directory} with exclude: {exclude}")
+                manifest = traverse_s3(directory, exclude)
+            else:
+                print(f"Generating PULP_MANIFEST for directory: {directory}")
+                manifest = traverse_dir(directory, exclude)
+            output = os.path.join(os.getcwd(), "PULP_MANIFEST")
+            write_manifest(output, manifest)
+        except (IOError, OSError) as e:
+            print(
+                "Couldn't open or write PULP_MANIFEST to directory %s (%s)."
+                % (directory, e)
+            )
+            sys.exit(1)
 
+def main(args=None):
+    """Pulp Manifest entrypoint.
+
+    Arguments:
+        args: Optional arguments list to be used instead of `sys.argv`.
+    """
+    parser = create_parser()
+    args = parser.parse_args(args)
+    build_manifest(args.directory, args.exclude)
 
 if __name__ == "__main__":
     main()
