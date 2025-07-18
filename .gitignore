@@ -1,0 +1,7 @@
+build
+dist
+*.egg-info
+pip-wheel-metadata/
+.pytest_cache
+__pycache__/
+

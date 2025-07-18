@@ -1,0 +1,32 @@
+---
+name: "Test"
+
+on:
+  workflow_call:
+
+env:
+  COLORTERM: "yes"
+  TERM: "xterm-256color"
+  PYTEST_ADDOPTS: "--color=yes"
+
+jobs:
+  test:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: "Download wheels"
+        uses: "actions/download-artifact@v4"
+        with:
+          name: "pulp_manifest_package"
+          path: "dist"
+      - name: "Set up Python"
+        uses: "actions/setup-python@v5"
+        with:
+          python-version: "3.12"
+      - name: "Install Python Test Dependencies"
+        run: |
+          pip install dist/pulp_manifest-*.whl -r test_requirements.txt
+      - name: "Run tests"
+        run: |
+          make test
+...
